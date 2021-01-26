@@ -6,7 +6,7 @@ import {setNotes} from '../redux/';
 
 let updatingNotes;
 
-const generateNote = (noteList, setNotes) => {
+const generateNote = (noteList, setNotes, setRerender, rerender) => {
     const output = noteList.map((note, index) =>
         <tr>
             <td>
@@ -25,7 +25,7 @@ const generateNote = (noteList, setNotes) => {
                                 <a className="btn btn-danger" style={{width: '40%'}} onClick={() => setNotes(noteList.map((note2, index2) => index2 == index ? {...note2, editMode: false} : note2 ))}>Cancel</a>]
                                 : [
                                 <a className="btn btn-primary" style={{width: '40%'}} onClick={() => setNotes(noteList.map((note2, index2) => index2 == index ? {...note2, tempTitle: note2.title, tempBody: note2.body, editMode: true} : {...note2, title: note2.tempTitle != undefined ? note2.tempTitle : note2.title, body: note2.tempBody != undefined ? note2.tempBody : note2.body, editMode: false} ))}>Edit</a>,
-                                <a className="btn btn-danger" style={{width: '40%'}}>Delete</a>]
+                                <a className="btn btn-danger" style={{width: '40%'}} onClick={() => [noteList.splice(index, 1), setNotes(noteList), setRerender(!rerender)]}>Delete</a>]
                             }
                         </div>
                     </div>
@@ -37,7 +37,7 @@ const generateNote = (noteList, setNotes) => {
 }
 
 const addNote = (notes, setNotes, setRerender, rerender) => {
-    notes = notes.map(note => {return {...note, editMode: false}});
+    notes = notes.map(note => note.editMode ? {...note, title: note.tempTitle, body: note.tempBody, editMode: false} : note);
     notes.push({title: 'New note', body: '', tempTitle: 'New note', editMode: true})
     setRerender(!rerender);
     setNotes(notes);
@@ -78,7 +78,7 @@ function MainPage(props) {
         <div className="text-center">
             <div className="btn btn-info my-2" onClick={() => addNote(props.notes, props.setNotes, setRerender, rerender)}>New note</div>
             <table className="m-0 table justify-content-center row">
-                {generateNote(props.notes, props.setNotes)}
+                {generateNote(props.notes, props.setNotes, setRerender, rerender)}
             </table>
         </div>
     )
