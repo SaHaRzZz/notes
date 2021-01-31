@@ -11,6 +11,13 @@ import heFlag from '../imgs/he_flag.png';
 import enFlag from '../imgs/en_flag.png';
 
 let updatingNotes;
+let elementTarget;
+let VCbody;
+let VCtitle;
+let VCtempTitle;
+let VCtempBody;
+let VCsave;
+let VCfullEdit;
 
 const generateNote = (noteList, setNotes, setRerender, rerender, lang) => {
     const output = noteList.map((note, index) =>
@@ -19,8 +26,8 @@ const generateNote = (noteList, setNotes, setRerender, rerender, lang) => {
                 <div dir="rtl" name={`card${index}`} className={`card ${note.editMode ? 'shadow-lg b' : ''}`} style={{ width: '18rem' }}>
                     <div className="card-body">
                         {note.editMode ? [
-                            <input onClick={e => note.justOpened ? [e.target.focus(), e.target.select(), setNotes(noteList.map((note2, index2) => index2 == index ? {...note2, justOpened: false} : note2))] : ''} className="text-center" style={{fontSize: '17px'}} defaultValue={note.title} onChange={e => setNotes(noteList.map((note2, index2) => index2 == index ? {...note2, tempTitle: e.target.value} : note2 ))}/>,
-                            <textarea id="textarea" onClick={e => e.target.value == fetchData[lang].strings[0] ? [e.target.focus(), e.target.select()] : ''} onFocus={e => resizeTextarea(e.target)} onBlur={e => resizeTextarea(e.target)} className="text-center" defaultValue={note.body} onChange={e => [resizeTextarea(e.target), setNotes(noteList.map((note2, index2) => index2 == index ? {...note2, tempBody: e.target.value} : note2 ))]}></textarea>]
+                            <input id="input" name={index} onClick={e => note.justOpened ? [e.target.focus(), e.target.select(), setNotes(noteList.map((note2, index2) => index2 == index ? {...note2, justOpened: false} : note2))] : ''} className="text-center" style={{fontSize: '17px'}} defaultValue={note.title} onChange={e => setNotes(noteList.map((note2, index2) => index2 == index ? {...note2, tempTitle: e.target.value} : note2 ))}/>,
+                            <textarea id="textarea" name={index} onClick={e => e.target.value == fetchData[lang].strings[0] ? [e.target.focus(), e.target.select()] : ''} onFocus={e => resizeTextarea(e.target)} onBlur={e => resizeTextarea(e.target)} className="text-center" defaultValue={note.body} onChange={e => [resizeTextarea(e.target), setNotes(noteList.map((note2, index2) => index2 == index ? {...note2, tempBody: e.target.value} : note2 ))]}></textarea>]
                             : [
                             <h5 className="card-title">{note.title}</h5>,
                             <p className="card-text" style={{whiteSpace: 'pre-wrap'}}>{note.body}</p>]
@@ -28,9 +35,11 @@ const generateNote = (noteList, setNotes, setRerender, rerender, lang) => {
                         <div className="row justify-content-between">
                             {note.editMode ? [
                                 <a className="btn btn-primary" style={{width: '40%'}} onClick={() => setNotes(noteList.map((note2, index2) => index2 == index ? {...note2, title: note2.tempTitle, body: note2.tempBody, editMode: false, justOpened: false} : note2 ))}>{fetchData[lang].strings[1]}</a>,
+                                <div className="btn">{index}</div>,
                                 <a className="btn btn-danger" style={{width: '40%'}} onClick={() => setNotes(noteList.map((note2, index2) => index2 == index ? {...note2, editMode: false, justOpened: false} : note2 ))}>{fetchData[lang].strings[2]}</a>]
                                 : [
                                 <a className="btn btn-primary" style={{width: '40%'}} onClick={() => [setNotes(noteList.map((note2, index2) => index2 == index ? {...note2, tempTitle: note2.title, tempBody: note2.body, editMode: true, justOpened: true} : {...note2, title: note2.tempTitle != undefined ? note2.tempTitle : note2.title, body: note2.tempBody != undefined ? note2.tempBody : note2.body, editMode: false, justOpened: false} )), setTimeout(() => resizeTextarea(document.getElementById('textarea')), 0)]}>{fetchData[lang].strings[3]}</a>,
+                                <div className="btn">{index}</div>,
                                 <a className="btn btn-danger" style={{width: '40%'}} onClick={() => [noteList.splice(index, 1), setNotes(noteList), setRerender(!rerender)]}>{fetchData[lang].strings[4]}</a>]
                             }
                         </div>
@@ -49,23 +58,6 @@ function resizeTextarea(el){
       el.style.cssText = 'height:' + (17 + el.scrollHeight + parseInt(windowEl.getPropertyValue('border-top-width')) + parseInt(windowEl.getPropertyValue('padding-top')) + parseInt(windowEl.getPropertyValue('padding-bottom')) + parseInt(windowEl.getPropertyValue('border-bottom-width'))) + 'px';
     },0);
   }
-
-const addNote = (notes, setNotes, setRerender, rerender, lang) => {
-    let addNoteBool = true;
-    notes = notes.map(note => {
-        if(note.title == fetchData[lang].strings[0] && note.body == fetchData[lang].strings[0]) {
-            addNoteBool = false;
-            return {...note, editMode: true};
-        } else {
-            return note.editMode ? {...note, title: note.tempTitle, body: note.tempBody, editMode: false} : note;
-        }
-    });
-    if(addNoteBool) {
-        notes.push({title: fetchData[lang].strings[0], body: fetchData[lang].strings[0], tempTitle: fetchData[lang].strings[0], tempBody: fetchData[lang].strings[0], editMode: true, justOpened: true})
-    }
-    setRerender(!rerender);
-    setNotes(notes);
-}
 
 function MainPage(props) {
     const [rerender, setRerender] = useState(false);
@@ -114,16 +106,101 @@ function MainPage(props) {
     const {transcript, resetTranscript, listening} = useSpeechRecognition();
 
     useEffect(() => {
-        if(editMode) {
-            //code here
+        if(!listening) {
+            if(VCtitle) {
+                VCtitle = false;
+            } else if(VCbody) {
+                VCbody = false;
+                VCsave = true;
+                VCtempTitle = elementTarget.value;
+                elementTarget = document.getElementById('textarea');
+                elementTarget.focus();
+                elementTarget.select();
+                SpeechRecognition.startListening({language: lang})
+            } else if(VCsave) {
+                VCsave = false;
+                if(elementTarget.id == 'input') {
+                    VCtempTitle = elementTarget.value;
+                } else {
+                    VCtempBody = elementTarget.value;
+                }
+                props.setNotes(props.notes.map((note, index) => index == elementTarget.name ? {...note, title: VCtempTitle ? VCtempTitle : note.title, body: VCtempBody ? VCtempBody : note.body, editMode: false, justOpened: false} : note ));
+                VCtempTitle = undefined;
+                VCtempBody = undefined;
+                elementTarget = undefined;
+                VCfullEdit = false;
+                setEditMode(false);
+            } else {
+                elementTarget = undefined;
+                setEditMode(false);
+            }
+        }
+    }, [listening])
+
+    useEffect(() => {
+        if(editMode && elementTarget) {
+            elementTarget.value = transcript;
+            if(VCfullEdit && VCsave && (transcript.includes('לחזור לאחור') || transcript.includes('חזור לאחור'))) {
+                elementTarget.value = '';
+                VCsave = false;
+                VCbody = true;
+                VCtitle = true;
+                SpeechRecognition.stopListening();
+                elementTarget = document.getElementById('input');
+                elementTarget.focus();
+                elementTarget.select();
+                setTimeout(() => {
+                    SpeechRecognition.startListening({language: lang});
+                }, 500);
+            }
         } else {
             switch(transcript.toLowerCase()) {
+                case 'make a note':
                 case 'make note':
-                    addNote(props.notes, props.setNotes, setRerender, rerender, lang);
+                case 'create note':
+                case 'create a note':
+                case 'new note':
+                case 'הכן הערה':
+                case 'הכנת הערה':
+                case 'הערה חדשה':
+                case 'הכיני הערה':
+                case 'צור הערה':
+                case 'יצירת הערה':
+                case 'צרי הערה':
+                    addNote(props.notes, props.setNotes, true);
+                    VCfullEdit = true;
+                    SpeechRecognition.stopListening();
                     break;
             }
         }
-    }, [transcript])
+    }, [transcript]);
+
+    const addNote = (notes, setNotes, selectTitle) => {
+        let addNoteBool = true;
+        notes = notes.map(note => {
+            if(note.title == fetchData[lang].strings[0] && note.body == fetchData[lang].strings[0]) {
+                addNoteBool = false;
+                return {...note, editMode: true};
+            } else {
+                return note.editMode ? {...note, title: note.tempTitle, body: note.tempBody, editMode: false} : note;
+            }
+        });
+        if(addNoteBool) {
+            notes.push({title: fetchData[lang].strings[0], body: fetchData[lang].strings[0], tempTitle: fetchData[lang].strings[0], tempBody: fetchData[lang].strings[0], editMode: true, justOpened: true})
+        }
+        setRerender(!rerender);
+        setNotes(notes);
+        if(selectTitle) {
+            setTimeout(() => {
+                VCbody = true;
+                elementTarget = document.getElementById('input');
+                elementTarget.focus();
+                elementTarget.select();
+                setEditMode(true);
+                setTimeout(() => SpeechRecognition.startListening({language: lang}), 500);
+            }, 0);
+        }
+    }
 
     return (
         <div className="text-center">
@@ -131,7 +208,7 @@ function MainPage(props) {
             <div>
                 <img type="button" onClick={changeLangauge} src={lang == 'en-US' ? enFlag : heFlag} className="position-absolute" style={{left: 0, zIndex: 1}}/>
                 <a className={`position-absolute btn ${SpeechRecognition.browserSupportsSpeechRecognition() ? '' : 'disabled'} ${listening ? 'text-primary' : 'text-danger'}`} onClick={() => SpeechRecognition.startListening({language: lang})} style={{right: 0, transform: `translateX(${listening ? '-23%' : '0'})`}}><FontAwesomeIcon icon={listening ? faMicrophone : faMicrophoneSlash} size="3x" type="button" style={{zIndex: 1}} src={lang == 'en-US' ? enFlag : heFlag}/></a>
-                <div className="btn btn-info my-2" onClick={() => addNote(props.notes, props.setNotes, setRerender, rerender, lang)}>{fetchData[lang].strings[0]}</div>
+                <div className="btn btn-info my-2" onClick={() => addNote(props.notes, props.setNotes)}>{fetchData[lang].strings[0]}</div>
                 <div className="btn btn-primary" onClick={() => SpeechRecognition.startListening({language: lang})}>start</div>
                 <div className="btn btn-primary" onClick={() => SpeechRecognition.stopListening()}>stop</div>
                 <div className="btn btn-primary" onClick={() => resetTranscript()}>reset</div>
