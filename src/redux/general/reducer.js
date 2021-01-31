@@ -3,8 +3,7 @@ import {SET_CONNECTED, SET_LOADING, SET_NOTES} from './types';
 const initialState = {
     isConnected: false,
     isLoading: true,
-    notes: [
-    ]
+    notes: []
 }
 
 const reducer = (state = initialState, action) => {
